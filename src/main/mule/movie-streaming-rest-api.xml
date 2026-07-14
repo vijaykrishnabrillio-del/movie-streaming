@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+    <flow name="movie-streaming-rest-api-main">
+        <http:listener config-ref="movie-streaming-rest-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="movie-streaming-rest-api-config" />
+        <error-handler ref="apikit-error-handler">
+            
+        </error-handler>
+    </flow>
+    <flow name="movie-streaming-rest-api-console">
+        <http:listener config-ref="movie-streaming-rest-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="movie-streaming-rest-api-config" />
+		<error-handler ref="apikit-error-handler" />
+    </flow>
+    <flow name="put:\movies\(movieId):application\json:movie-streaming-rest-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="movieId">attributes.uriParams.'movieId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  movieId: "MOV001",
+  title: "Inception - Director's Cut",
+  genre: "Sci-Fi / Thriller",
+  releaseYear: 2010,
+  director: "Christopher Nolan",
+  cast: [
+    "Leonardo DiCaprio", 
+    "Ellen Page", 
+    "Tom Hardy"
+  ],
+  description: "The extended director's cut of the mind-bending thriller.",
+  platform: "NETFLIX",
+  contentOwner: {
+    ownerId: "OWN001",
+    name: "Warner Bros Entertainment",
+    email: "admin@warnerbros.com",
+    contactNumber: "+1-800-555-0100"
+  },
+  status: "UPDATED",
+  addedAt: "2026-06-21T00:00:00.000Z"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="delete:\movies\(movieId):movie-streaming-rest-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="movieId">attributes.uriParams.'movieId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  movieId: "MOV001",
+  status: "DELETED",
+  message: "Movie MOV001 has been successfully deleted from NETFLIX.",
+  deletedAt: "2026-06-21T00:05:00.000Z"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\movies:movie-streaming-rest-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  total: 2,
+  movies: [
+    {
+      movieId: "MOV001",
+      title: "Inception",
+      genre: "Sci-Fi",
+      releaseYear: 2010,
+      director: "Christopher Nolan",
+      cast: [
+        "Leonardo DiCaprio", 
+        "Ellen Page"
+      ],
+      description: "A mind-bending thriller involving dream heists.",
+      platform: "NETFLIX",
+      contentOwner: {
+        ownerId: "OWN001",
+        name: "Warner Bros Entertainment",
+        email: "admin@warnerbros.com"
+      },
+      status: "SUCCESS",
+      addedAt: "2026-06-21T00:00:00.000Z"
+    }, 
+    {
+      movieId: "MOV002",
+      title: "The Dark Knight",
+      genre: "Action",
+      releaseYear: 2008,
+      director: "Christopher Nolan",
+      cast: [
+        "Christian Bale", 
+        "Heath Ledger"
+      ],
+      description: "Batman faces the Joker in Gotham City.",
+      platform: "AMAZON_PRIME",
+      contentOwner: {
+        ownerId: "OWN002",
+        name: "DC Entertainment",
+        email: "admin@dc.com"
+      },
+      status: "SUCCESS",
+      addedAt: "2026-06-21T00:01:00.000Z"
+    }
+  ]
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\movies\(movieId):movie-streaming-rest-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="movieId">attributes.uriParams.'movieId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  movieId: "MOV001",
+  title: "Inception",
+  genre: "Sci-Fi",
+  releaseYear: 2010,
+  director: "Christopher Nolan",
+  cast: [
+    "Leonardo DiCaprio", 
+    "Ellen Page", 
+    "Joseph Gordon-Levitt"
+  ],
+  description: "A thief who steals corporate secrets through the use of dream-sharing technology.",
+  platform: "NETFLIX",
+  contentOwner: {
+    ownerId: "OWN001",
+    name: "Warner Bros Entertainment",
+    email: "admin@warnerbros.com",
+    contactNumber: "+1-800-555-0100"
+  },
+  status: "SUCCESS",
+  addedAt: "2026-06-21T00:00:00.000Z"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\movies:application\json:movie-streaming-rest-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  movieId: "MOV001",
+  title: "Inception",
+  genre: "Sci-Fi",
+  releaseYear: 2010,
+  director: "Christopher Nolan",
+  cast: [
+    "Leonardo DiCaprio", 
+    "Ellen Page", 
+    "Joseph Gordon-Levitt"
+  ],
+  description: "A thief who steals corporate secrets through the use of dream-sharing technology.",
+  platform: "NETFLIX",
+  contentOwner: {
+    ownerId: "OWN001",
+    name: "Warner Bros Entertainment",
+    email: "admin@warnerbros.com",
+    contactNumber: "+1-800-555-0100"
+  },
+  status: "SUCCESS",
+  addedAt: "2026-06-21T00:00:00.000Z"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
